@@ -1,3 +1,7 @@
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
 from dataclasses import dataclass
 from typing import List, Optional, Dict
 
@@ -20,6 +24,11 @@ fastapi_application.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+fastapi_application.mount("/static", StaticFiles(directory="static"), name="static")
+
+@fastapi_application.get("/")
+def serve_frontend():
+    return FileResponse("static/index.html")
 
 bilibili_suggestion_endpoint_address: str = "https://api.bilibili.com/x/web-interface/suggest"
 
