@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bilibili Autocomplete Guessing Game</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .page_wrapper {
+      width: 100%;
+      max-width: 900px;
+      padding: 24px;
+    }
+
+    .card {
+      background: #020617;
+      border-radius: 16px;
+      border: 1px solid #1f2937;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .card_title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #e5e7eb;
+    }
+
+    .label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: #9ca3af;
+    }
+
+    .text_input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .text_input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px #0ea5e9;
+    }
+
+    .button_row {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .button {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .button_primary {
+      background: linear-gradient(135deg, #0ea5e9, #22c55e);
+      color: #0b1120;
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.35);
+    }
+
+    .button_primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 32px rgba(34, 197, 94, 0.5);
+    }
+
+    .button_primary:active {
+      transform: translateY(0);
+      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+    }
+
+    .button_secondary {
+      background: #111827;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+    }
+
+    .button_secondary:hover {
+      background: #1f2937;
+    }
+
+    .status_row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      font-size: 14px;
+      color: #9ca3af;
+    }
+
+    .status_highlight {
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    .answers_grid {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+    }
+
+    .answer_slot {
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #020617;
+      border: 1px dashed #374151;
+      font-size: 13px;
+      color: #9ca3af;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .answer_slot_revealed {
+      border-style: solid;
+      border-color: #22c55e;
+      color: #e5e7eb;
+      background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.18), transparent);
+    }
+
+    .answer_index_badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #111827;
+      color: #9ca3af;
+      margin-right: 6px;
+    }
+
+    .answer_text {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .answer_points {
+      font-size: 11px;
+      color: #22c55e;
+      margin-left: 8px;
+      opacity: 0.8;
+    }
+
+    .message_area {
+      margin-top: 10px;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
+    .message_success {
+      color: #22c55e;
+    }
+
+    .message_error {
+      color: #f97316;
+    }
+
+    .message_info {
+      color: #60a5fa;
+    }
+
+    .prefix_display {
+      font-size: 16px;
+      margin-top: 4px;
+      color: #e5e7eb;
+    }
+
+    .prefix_label {
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .game_over_badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(239, 68, 68, 0.15);
+      color: #fecaca;
+      font-size: 12px;
+      margin-left: 10px;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+  </style>
+</head>
+<body>
+<div class="page_wrapper">
+  <div class="card">
+    <div class="card_title">Bilibili Autocomplete Guessing Game</div>
+    <label class="label" for="prefix_input_element">
+      Enter a Bilibili search prefix (for example: <span style="color:#e5e7eb;">天子</span>)
+    </label>
+    <input id="prefix_input_element" class="text_input" type="text" placeholder="Enter prefix here">
+
+    <label class="label" for="maximum_strikes_input_element" style="margin-top:8px;">
+      Maximum strikes before game over
+    </label>
+    <input id="maximum_strikes_input_element" class="text_input" type="number" min="1" value="5">
+
+    <div class="button_row">
+      <button id="start_round_button_element" class="button button_primary">
+        Start new round
+      </button>
+    </div>
+
+    <div id="round_message_element" class="message_area message_info"></div>
+  </div>
+
+  <div class="card">
+    <div class="card_title">
+      Current round
+      <span id="game_over_badge_element" class="game_over_badge" style="display:none;">
+        Game over
+      </span>
+    </div>
+
+    <div class="prefix_label">Search term prefix:</div>
+    <div id="current_prefix_display_element" class="prefix_display">None</div>
+
+    <div class="status_row">
+      <div>
+        Score:
+        <span id="score_value_element" class="status_highlight">0</span>
+      </div>
+      <div>
+        Strikes:
+        <span id="strikes_value_element" class="status_highlight">0</span>
+        /
+        <span id="maximum_strikes_value_element">0</span>
+      </div>
+    </div>
+
+    <div class="answers_grid" id="answers_grid_element">
+      <!-- Filled by script -->
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card_title">Make a guess</div>
+
+    <label class="label" for="guess_input_element">
+      Enter your guess (full Bilibili search term)
+    </label>
+    <input id="guess_input_element" class="text_input" type="text" placeholder="Type your guess here">
+
+    <div class="button_row">
+      <button id="guess_button_element" class="button button_primary">
+        Submit guess
+      </button>
+      <button id="clear_guess_button_element" class="button button_secondary">
+        Clear guess
+      </button>
+    </div>
+
+    <div id="guess_message_element" class="message_area"></div>
+  </div>
+</div>
+
+<script>
+  let current_round_identifier = null;
+  let current_search_term_prefix = "";
+  let current_maximum_strikes = 0;
+  let current_score = 0;
+  let current_strikes = 0;
+  let current_revealed_answers = [];
+  let current_game_over_flag = false;
+
+  const score_table = [1000, 900, 800, 700, 600, 500, 400, 300, 200, 100];
+
+  const prefix_input_element = document.getElementById("prefix_input_element");
+  const maximum_strikes_input_element = document.getElementById("maximum_strikes_input_element");
+  const start_round_button_element = document.getElementById("start_round_button_element");
+  const round_message_element = document.getElementById("round_message_element");
+
+  const current_prefix_display_element = document.getElementById("current_prefix_display_element");
+  const score_value_element = document.getElementById("score_value_element");
+  const strikes_value_element = document.getElementById("strikes_value_element");
+  const maximum_strikes_value_element = document.getElementById("maximum_strikes_value_element");
+  const answers_grid_element = document.getElementById("answers_grid_element");
+  const game_over_badge_element = document.getElementById("game_over_badge_element");
+
+  const guess_input_element = document.getElementById("guess_input_element");
+  const guess_button_element = document.getElementById("guess_button_element");
+  const clear_guess_button_element = document.getElementById("clear_guess_button_element");
+  const guess_message_element = document.getElementById("guess_message_element");
+
+  function update_round_display() {
+    current_prefix_display_element.textContent = current_search_term_prefix || "None";
+    score_value_element.textContent = String(current_score);
+    strikes_value_element.textContent = String(current_strikes);
+    maximum_strikes_value_element.textContent = String(current_maximum_strikes);
+
+    if (current_game_over_flag) {
+      game_over_badge_element.style.display = "inline-flex";
+    } else {
+      game_over_badge_element.style.display = "none";
+    }
+
+    answers_grid_element.innerHTML = "";
+
+    if (!current_revealed_answers || current_revealed_answers.length === 0) {
+      const empty_message_div = document.createElement("div");
+      empty_message_div.style.fontSize = "13px";
+      empty_message_div.style.color = "#6b7280";
+      empty_message_div.textContent = "Start a round to see answer slots.";
+      answers_grid_element.appendChild(empty_message_div);
+      return;
+    }
+
+    current_revealed_answers.forEach(function(answer_text, answer_index) {
+      const answer_slot_div = document.createElement("div");
+      const is_revealed_flag = answer_text !== null && answer_text !== undefined;
+
+      answer_slot_div.className = "answer_slot" + (is_revealed_flag ? " answer_slot_revealed" : "");
+
+      const left_group_div = document.createElement("div");
+      left_group_div.style.display = "flex";
+      left_group_div.style.alignItems = "center";
+      left_group_div.style.flex = "1";
+
+      const index_badge_span = document.createElement("span");
+      index_badge_span.className = "answer_index_badge";
+      index_badge_span.textContent = "#" + (answer_index + 1);
+      left_group_div.appendChild(index_badge_span);
+
+      const answer_text_span = document.createElement("span");
+      answer_text_span.className = "answer_text";
+      answer_text_span.textContent = is_revealed_flag ? answer_text : "????????";
+      left_group_div.appendChild(answer_text_span);
+
+      answer_slot_div.appendChild(left_group_div);
+
+      if (answer_index < score_table.length) {
+        const points_span = document.createElement("span");
+        points_span.className = "answer_points";
+        points_span.textContent = "+" + score_table[answer_index] + " pts";
+        answer_slot_div.appendChild(points_span);
+      }
+
+      answers_grid_element.appendChild(answer_slot_div);
+    });
+  }
+
+  async function start_new_round() {
+    const prefix_value = prefix_input_element.value;
+    const maximum_strikes_value = Number(maximum_strikes_input_element.value);
+
+    round_message_element.className = "message_area message_info";
+    round_message_element.textContent = "Starting round...";
+
+    const response = await fetch("http://localhost:8000/api/start_round", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        search_term_prefix: prefix_value,
+        maximum_strikes: maximum_strikes_value
+      })
+    });
+
+    if (!response.ok) {
+      round_message_element.className = "message_area message_error";
+      round_message_element.textContent = "Failed to start round. Please check backend server.";
+      return;
+    }
+
+    const response_body = await response.json();
+
+    current_round_identifier = response_body.round_identifier;
+    current_search_term_prefix = response_body.search_term_prefix;
+    current_maximum_strikes = response_body.maximum_strikes;
+    current_score = 0;
+    current_strikes = 0;
+    current_game_over_flag = false;
+    current_revealed_answers = response_body.masked_answers;
+
+    guess_message_element.textContent = "";
+    guess_message_element.className = "message_area";
+    guess_input_element.value = "";
+
+    round_message_element.className = "message_area message_success";
+    round_message_element.textContent = "Round started. Make your guesses!";
+
+    update_round_display();
+  }
+
+  async function submit_guess() {
+    if (!current_round_identifier) {
+      guess_message_element.className = "message_area message_error";
+      guess_message_element.textContent = "No active round. Start a round first.";
+      return;
+    }
+
+    if (current_game_over_flag) {
+      guess_message_element.className = "message_area message_error";
+      guess_message_element.textContent = "Game is over. Start a new round.";
+      return;
+    }
+
+    const guess_value = guess_input_element.value;
+
+    guess_message_element.className = "message_area message_info";
+    guess_message_element.textContent = "Submitting guess...";
+
+    const response = await fetch("http://localhost:8000/api/guess", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        round_identifier: current_round_identifier,
+        guess_text: guess_value
+      })
+    });
+
+    if (!response.ok) {
+      guess_message_element.className = "message_area message_error";
+      guess_message_element.textContent = "Failed to submit guess. Please check backend server.";
+      return;
+    }
+
+    const response_body = await response.json();
+
+    current_score = response_body.score;
+    current_strikes = response_body.strikes;
+    current_game_over_flag = response_body.game_over;
+    current_revealed_answers = response_body.revealed_answers;
+    current_search_term_prefix = response_body.search_term_prefix;
+
+    if (response_body.is_correct && response_body.correct_index !== -1) {
+      guess_message_element.className = "message_area message_success";
+      const human_index = response_body.correct_index + 1;
+      guess_message_element.textContent = "Correct! You discovered answer #" + human_index + ".";
+    } else {
+      guess_message_element.className = "message_area message_error";
+      if (current_game_over_flag) {
+        guess_message_element.textContent = "Incorrect. You reached the strike limit. All answers are revealed.";
+      } else {
+        guess_message_element.textContent = "Incorrect guess. Try again.";
+      }
+    }
+
+    update_round_display();
+  }
+
+  function clear_guess() {
+    guess_input_element.value = "";
+    guess_message_element.textContent = "";
+    guess_message_element.className = "message_area";
+  }
+
+  start_round_button_element.addEventListener("click", function() {
+    start_new_round();
+  });
+
+  guess_button_element.addEventListener("click", function() {
+    submit_guess();
+  });
+
+  clear_guess_button_element.addEventListener("click", function() {
+    clear_guess();
+  });
+
+  guess_input_element.addEventListener("keydown", function(event_object) {
+    if (event_object.key === "Enter") {
+      submit_guess();
+    }
+  });
+
+  update_round_display();
+</script>
+</body>
+</html>
