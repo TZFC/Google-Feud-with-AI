@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>Bilibili Autocomplete Guessing Game</title>
+  <title>哔哩哔哩联想搜索猜词小游戏</title>
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -138,13 +138,51 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
     }
 
+    /* 正常进行中被揭示的答案（非游戏结束态） */
     .answer_slot_revealed {
       border-style: solid;
       border-color: #22c55e;
       color: #e5e7eb;
       background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.18), transparent);
+    }
+
+    /* 游戏结束后：成功猜中的答案（绿） */
+    .answer_slot_guessed {
+      border-style: solid;
+      border-color: #22c55e;
+      color: #e5e7eb;
+      background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.25), transparent);
+    }
+
+    /* 游戏结束后：从未猜中的答案（红） */
+    .answer_slot_missed {
+      border-style: solid;
+      border-color: #ef4444;
+      color: #fecaca;
+      background: radial-gradient(circle at top left, rgba(248, 113, 113, 0.3), transparent);
+    }
+
+    /* 重复猜测时闪烁蓝色 3 秒 */
+    @keyframes flashBlue {
+      0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6);
+        border-color: #3b82f6;
+      }
+      50% {
+        box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+        border-color: #60a5fa;
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        border-color: #3b82f6;
+      }
+    }
+
+    .answer_slot_repeat_flash {
+      animation: flashBlue 0.5s ease-in-out 6; /* 0.5s * 6 = 3 秒 */
     }
 
     .answer_index_badge {
@@ -216,20 +254,20 @@
 <body>
 <div class="page_wrapper">
   <div class="card">
-    <div class="card_title">Bilibili Autocomplete Guessing Game</div>
+    <div class="card_title">哔哩哔哩联想搜索猜词小游戏</div>
     <label class="label" for="prefix_input_element">
-      Enter a Bilibili search prefix (for example: <span style="color:#e5e7eb;">天子</span>)
+      输入哔哩哔哩搜索前缀（例如：<span style="color:#e5e7eb;">谁是</span>）
     </label>
-    <input id="prefix_input_element" class="text_input" type="text" placeholder="Enter prefix here">
+    <input id="prefix_input_element" class="text_input" type="text" placeholder="在这里输入搜索前缀">
 
     <label class="label" for="maximum_strikes_input_element" style="margin-top:8px;">
-      Maximum strikes before game over
+      达到多少次错误后游戏结束
     </label>
     <input id="maximum_strikes_input_element" class="text_input" type="number" min="1" value="5">
 
     <div class="button_row">
       <button id="start_round_button_element" class="button button_primary">
-        Start new round
+        开始新回合
       </button>
     </div>
 
@@ -238,22 +276,22 @@
 
   <div class="card">
     <div class="card_title">
-      Current round
+      当前回合
       <span id="game_over_badge_element" class="game_over_badge" style="display:none;">
-        Game over
+        游戏结束
       </span>
     </div>
 
-    <div class="prefix_label">Search term prefix:</div>
-    <div id="current_prefix_display_element" class="prefix_display">None</div>
+    <div class="prefix_label">搜索前缀：</div>
+    <div id="current_prefix_display_element" class="prefix_display">无</div>
 
     <div class="status_row">
       <div>
-        Score:
+        当前得分：
         <span id="score_value_element" class="status_highlight">0</span>
       </div>
       <div>
-        Strikes:
+        错误次数：
         <span id="strikes_value_element" class="status_highlight">0</span>
         /
         <span id="maximum_strikes_value_element">0</span>
@@ -261,24 +299,34 @@
     </div>
 
     <div class="answers_grid" id="answers_grid_element">
-      <!-- Filled by script -->
+      <!-- 动态填充 -->
     </div>
   </div>
 
   <div class="card">
-    <div class="card_title">Make a guess</div>
+    <div class="card_title">进行猜测</div>
 
-    <label class="label" for="guess_input_element">
-      Enter your guess (full Bilibili search term)
+    <label class="label" for="guess_suffix_input_element">
+      模拟搜索框：左侧为固定前缀，只能在右侧继续输入后缀
     </label>
-    <input id="guess_input_element" class="text_input" type="text" placeholder="Type your guess here">
+
+    <!-- 模拟搜索框：左边前缀不可编辑，右边输入后缀 -->
+    <div class="text_input" style="display:flex; align-items:center; padding-left:0;">
+      <span id="guess_prefix_element"
+            style="padding:10px 8px; background:#111827; border-right:1px solid #4b5563; user-select:none; color:#9ca3af; white-space:nowrap;">
+      </span>
+      <input id="guess_suffix_input_element"
+             type="text"
+             style="flex:1; padding:10px 12px; border:none; outline:none; background:transparent; color:#e5e7eb;"
+             placeholder="在前缀后继续输入完整搜索词…">
+    </div>
 
     <div class="button_row">
       <button id="guess_button_element" class="button button_primary">
-        Submit guess
+        提交猜测
       </button>
       <button id="clear_guess_button_element" class="button button_secondary">
-        Clear guess
+        清空输入
       </button>
     </div>
 
@@ -295,6 +343,9 @@
   let current_revealed_answers = [];
   let current_game_over_flag = false;
 
+  // 记录哪些答案是“通过猜测”成功命中的（用于回合结束时区分绿 / 红）
+  let current_guessed_flags = [];
+
   const score_table = [1000, 900, 800, 700, 600, 500, 400, 300, 200, 100];
 
   const prefix_input_element = document.getElementById("prefix_input_element");
@@ -309,13 +360,14 @@
   const answers_grid_element = document.getElementById("answers_grid_element");
   const game_over_badge_element = document.getElementById("game_over_badge_element");
 
-  const guess_input_element = document.getElementById("guess_input_element");
+  const guess_prefix_element = document.getElementById("guess_prefix_element");
+  const guess_suffix_input_element = document.getElementById("guess_suffix_input_element");
   const guess_button_element = document.getElementById("guess_button_element");
   const clear_guess_button_element = document.getElementById("clear_guess_button_element");
   const guess_message_element = document.getElementById("guess_message_element");
 
   function update_round_display() {
-    current_prefix_display_element.textContent = current_search_term_prefix || "None";
+    current_prefix_display_element.textContent = current_search_term_prefix || "无";
     score_value_element.textContent = String(current_score);
     strikes_value_element.textContent = String(current_strikes);
     maximum_strikes_value_element.textContent = String(current_maximum_strikes);
@@ -329,45 +381,63 @@
     answers_grid_element.innerHTML = "";
 
     if (!current_revealed_answers || current_revealed_answers.length === 0) {
-      const empty_message_div = document.createElement("div");
-      empty_message_div.style.fontSize = "13px";
-      empty_message_div.style.color = "#6b7280";
-      empty_message_div.textContent = "Start a round to see answer slots.";
-      answers_grid_element.appendChild(empty_message_div);
+      const empty_message_element = document.createElement("div");
+      empty_message_element.style.fontSize = "13px";
+      empty_message_element.style.color = "#6b7280";
+      empty_message_element.textContent = "请先开始一个回合，下面会显示答案槽位。";
+      answers_grid_element.appendChild(empty_message_element);
       return;
     }
 
     current_revealed_answers.forEach(function(answer_text, answer_index) {
-      const answer_slot_div = document.createElement("div");
       const is_revealed_flag = answer_text !== null && answer_text !== undefined;
 
-      answer_slot_div.className = "answer_slot" + (is_revealed_flag ? " answer_slot_revealed" : "");
+      const answer_slot_element = document.createElement("div");
+      answer_slot_element.setAttribute("data-answer-index", String(answer_index));
 
-      const left_group_div = document.createElement("div");
-      left_group_div.style.display = "flex";
-      left_group_div.style.alignItems = "center";
-      left_group_div.style.flex = "1";
+      let slot_class_name = "answer_slot";
 
-      const index_badge_span = document.createElement("span");
-      index_badge_span.className = "answer_index_badge";
-      index_badge_span.textContent = "#" + (answer_index + 1);
-      left_group_div.appendChild(index_badge_span);
-
-      const answer_text_span = document.createElement("span");
-      answer_text_span.className = "answer_text";
-      answer_text_span.textContent = is_revealed_flag ? answer_text : "????????";
-      left_group_div.appendChild(answer_text_span);
-
-      answer_slot_div.appendChild(left_group_div);
-
-      if (answer_index < score_table.length) {
-        const points_span = document.createElement("span");
-        points_span.className = "answer_points";
-        points_span.textContent = "+" + score_table[answer_index] + " pts";
-        answer_slot_div.appendChild(points_span);
+      if (is_revealed_flag) {
+        if (current_game_over_flag) {
+          // 游戏结束态：猜中过的绿色，没猜中的红色
+          if (current_guessed_flags[answer_index]) {
+            slot_class_name += " answer_slot_guessed";
+          } else {
+            slot_class_name += " answer_slot_missed";
+          }
+        } else {
+          // 游戏进行中：统一绿色样式
+          slot_class_name += " answer_slot_revealed";
+        }
       }
 
-      answers_grid_element.appendChild(answer_slot_div);
+      answer_slot_element.className = slot_class_name;
+
+      const left_group_element = document.createElement("div");
+      left_group_element.style.display = "flex";
+      left_group_element.style.alignItems = "center";
+      left_group_element.style.flex = "1";
+
+      const index_badge_element = document.createElement("span");
+      index_badge_element.className = "answer_index_badge";
+      index_badge_element.textContent = "#" + (answer_index + 1);
+      left_group_element.appendChild(index_badge_element);
+
+      const answer_text_element = document.createElement("span");
+      answer_text_element.className = "answer_text";
+      answer_text_element.textContent = is_revealed_flag ? answer_text : "未揭示";
+      left_group_element.appendChild(answer_text_element);
+
+      answer_slot_element.appendChild(left_group_element);
+
+      if (answer_index < score_table.length) {
+        const points_element = document.createElement("span");
+        points_element.className = "answer_points";
+        points_element.textContent = "+" + score_table[answer_index] + " 分";
+        answer_slot_element.appendChild(points_element);
+      }
+
+      answers_grid_element.appendChild(answer_slot_element);
     });
   }
 
@@ -376,7 +446,7 @@
     const maximum_strikes_value = Number(maximum_strikes_input_element.value);
 
     round_message_element.className = "message_area message_info";
-    round_message_element.textContent = "Starting round...";
+    round_message_element.textContent = "正在创建回合…";
 
     const response = await fetch("http://localhost:8000/api/start_round", {
       method: "POST",
@@ -391,7 +461,7 @@
 
     if (!response.ok) {
       round_message_element.className = "message_area message_error";
-      round_message_element.textContent = "Failed to start round. Please check backend server.";
+      round_message_element.textContent = "创建回合失败，请检查后端服务是否正常运行。";
       return;
     }
 
@@ -405,12 +475,18 @@
     current_game_over_flag = false;
     current_revealed_answers = response_body.masked_answers;
 
+    // 初始化“是否已通过猜测命中”的标记
+    current_guessed_flags = new Array(current_revealed_answers.length).fill(false);
+
     guess_message_element.textContent = "";
     guess_message_element.className = "message_area";
-    guess_input_element.value = "";
+
+    guess_prefix_element.textContent = current_search_term_prefix;
+    guess_suffix_input_element.value = "";
+    guess_suffix_input_element.focus();
 
     round_message_element.className = "message_area message_success";
-    round_message_element.textContent = "Round started. Make your guesses!";
+    round_message_element.textContent = "回合已开始，可以开始猜词！";
 
     update_round_display();
   }
@@ -418,20 +494,27 @@
   async function submit_guess() {
     if (!current_round_identifier) {
       guess_message_element.className = "message_area message_error";
-      guess_message_element.textContent = "No active round. Start a round first.";
+      guess_message_element.textContent = "当前没有进行中的回合，请先点击“开始新回合”。";
       return;
     }
 
     if (current_game_over_flag) {
       guess_message_element.className = "message_area message_error";
-      guess_message_element.textContent = "Game is over. Start a new round.";
+      guess_message_element.textContent = "本回合已经结束，请开始新的回合。";
       return;
     }
 
-    const guess_value = guess_input_element.value;
+    const suffix_value = guess_suffix_input_element.value;
+    const full_guess_value = current_search_term_prefix + suffix_value;
+
+    if (!full_guess_value || full_guess_value.trim().length === 0) {
+      guess_message_element.className = "message_area message_error";
+      guess_message_element.textContent = "请输入要猜的完整搜索词。";
+      return;
+    }
 
     guess_message_element.className = "message_area message_info";
-    guess_message_element.textContent = "Submitting guess...";
+    guess_message_element.textContent = "正在提交猜测…";
 
     const response = await fetch("http://localhost:8000/api/guess", {
       method: "POST",
@@ -440,42 +523,77 @@
       },
       body: JSON.stringify({
         round_identifier: current_round_identifier,
-        guess_text: guess_value
+        guess_text: full_guess_value
       })
     });
 
     if (!response.ok) {
       guess_message_element.className = "message_area message_error";
-      guess_message_element.textContent = "Failed to submit guess. Please check backend server.";
+      guess_message_element.textContent = "提交猜测失败，请检查后端服务是否正常运行。";
       return;
     }
 
     const response_body = await response.json();
 
+    // 在更新状态之前，先判断这次是否“重复猜中已经猜过的答案”
+    const correct_index = response_body.correct_index;
+    const is_model_correct = response_body.is_correct && correct_index !== -1;
+    let is_repeat_guess = false;
+
+    if (is_model_correct) {
+      if (current_guessed_flags[correct_index]) {
+        // 之前已经被标记为“通过猜测命中过”
+        is_repeat_guess = true;
+      } else {
+        // 第一次成功命中该答案
+        current_guessed_flags[correct_index] = true;
+      }
+    }
+
+    // 同步后端返回的其他状态
     current_score = response_body.score;
     current_strikes = response_body.strikes;
     current_game_over_flag = response_body.game_over;
     current_revealed_answers = response_body.revealed_answers;
     current_search_term_prefix = response_body.search_term_prefix;
+    guess_prefix_element.textContent = current_search_term_prefix;
 
-    if (response_body.is_correct && response_body.correct_index !== -1) {
-      guess_message_element.className = "message_area message_success";
-      const human_index = response_body.correct_index + 1;
-      guess_message_element.textContent = "Correct! You discovered answer #" + human_index + ".";
+    // 更新界面（会刷新答案卡片 DOM）
+    update_round_display();
+
+    // 根据情况显示提示信息，并处理重复猜测的蓝色闪烁
+    if (is_model_correct) {
+      if (is_repeat_guess) {
+        guess_message_element.className = "message_area message_info";
+        guess_message_element.textContent = "这个联想结果你已经猜中过了（不加分，也不扣次数）。";
+
+        const slot_element = document.querySelector(
+          '.answer_slot[data-answer-index="' + String(correct_index) + '"]'
+        );
+        if (slot_element) {
+          slot_element.classList.add("answer_slot_repeat_flash");
+          setTimeout(function() {
+            slot_element.classList.remove("answer_slot_repeat_flash");
+          }, 3000);
+        }
+      } else {
+        guess_message_element.className = "message_area message_success";
+        const human_index = correct_index + 1;
+        guess_message_element.textContent = "回答正确！你首次猜中了第 " + human_index + " 个联想结果。";
+      }
     } else {
       guess_message_element.className = "message_area message_error";
       if (current_game_over_flag) {
-        guess_message_element.textContent = "Incorrect. You reached the strike limit. All answers are revealed.";
+        guess_message_element.textContent = "回答错误，错误次数已达上限，本回合结束，所有答案已揭示。";
       } else {
-        guess_message_element.textContent = "Incorrect guess. Try again.";
+        guess_message_element.textContent = "回答错误，请再试一次。";
       }
     }
-
-    update_round_display();
   }
 
-  function clear_guess() {
-    guess_input_element.value = "";
+  function clear_guess_input() {
+    guess_suffix_input_element.value = "";
+    guess_suffix_input_element.focus();
     guess_message_element.textContent = "";
     guess_message_element.className = "message_area";
   }
@@ -489,10 +607,10 @@
   });
 
   clear_guess_button_element.addEventListener("click", function() {
-    clear_guess();
+    clear_guess_input();
   });
 
-  guess_input_element.addEventListener("keydown", function(event_object) {
+  guess_suffix_input_element.addEventListener("keydown", function(event_object) {
     if (event_object.key === "Enter") {
       submit_guess();
     }
